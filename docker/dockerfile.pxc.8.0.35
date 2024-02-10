@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1
+
+# Set environment which is used to identify base image.
+ARG ENV=dev
+
+# Base image.
+FROM pxc-base:${ENV}
+
+# Percona XtraDB Cluster version.
+ARG VERSION=8.0.35-27.1
+
+# Create a non-privileged user that the MySQL will run under.
+RUN useradd -M -s /bin/bash mysql
+
+WORKDIR /tmp
+
+# Install OPENLDAP package.
+COPY common/openldap-2.6.6-1.el9.x86_64.rpm .
+COPY common/qpress-20220819-1.el9.x86_64.rpm .
+RUN set -x \
+  && yum install -y openldap-2.6.6-1.el9.x86_64.rpm qpress-20220819-1.el9.x86_64.rpm \
+  && rm openldap-2.6.6-1.el9.x86_64.rpm qpress-20220819-1.el9.x86_64.rpm
+
+# Install Percona XtraDB Cluster for MySQL.
+COPY binary/percona*.rpm .
+RUN set -x \
+    && yum install -y \
+      percona-xtradb-cluster-icu-data-files-${VERSION}.el9.x86_64.rpm \
+      percona-xtradb-cluster-shared-${VERSION}.el9.x86_64.rpm \
+      percona-xtradb-cluster-client-${VERSION}.el9.x86_64.rpm \
+      percona-xtradb-cluster-server-${VERSION}.el9.x86_64.rpm \
+    && rm percona*.rpm
+
+# Create necessary directories.
+RUN set -x \
+  && mkdir /opt/mysql \
+  && mkdir /opt/mysql/cert \
+  && mkdir /opt/mysql/conf \
+  && mkdir /opt/mysql/data \
+  && mkdir /opt/mysql/log \
+  && mkdir /opt/mysql/script \
+  && mkdir /opt/mysql/system \
+  && chown -R mysql:mysql /opt/mysql \
+  && history -c
+
+# Set default work directory.
+WORKDIR /opt/mysql

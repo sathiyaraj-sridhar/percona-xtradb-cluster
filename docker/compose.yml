@@ -1,0 +1,84 @@
+version: '3.8'
+services:
+  node0:
+    image: ${PXC_IMAGE}
+    entrypoint: /usr/local/bin/supervisord
+    command: "-c /etc/supervisord.conf"
+    volumes:
+      - node1-data:/opt/mysql/data
+      - ../source/cert:/opt/mysql/cert
+      - ../source/conf/initialize.txt:/opt/mysql/conf/initialize.txt
+      - ../source/conf/node1.conf:/opt/mysql/conf/node.conf
+      - ../supervisor/supervisord.conf:/etc/supervisord.conf
+      - ../supervisor/mysql-bootstrap-pxc.ini:/etc/supervisord.d/mysql.ini
+    networks:
+      common:
+        ipv4_address: ${PXC_NODE_1_IP}
+    profiles:
+      - bootstrap
+  node1:
+    image: ${PXC_IMAGE}
+    entrypoint: /usr/local/bin/supervisord
+    command: "-c /etc/supervisord.conf"
+    volumes:
+      - node1-data:/opt/mysql/data
+      - ../source/cert:/opt/mysql/cert
+      - ../source/conf/node1.conf:/opt/mysql/conf/node.conf
+      - ../supervisor/supervisord.conf:/etc/supervisord.conf
+      - ../supervisor/mysql.ini:/etc/supervisord.d/mysql.ini
+    networks:
+      common:
+        ipv4_address: ${PXC_NODE_1_IP}
+    profiles:
+      - pxc
+  node2:
+    image: ${PXC_IMAGE}
+    entrypoint: /usr/local/bin/supervisord
+    command: "-c /etc/supervisord.conf"
+    volumes:
+      - node2-data:/opt/mysql/data
+      - ../source/cert:/opt/mysql/cert
+      - ../source/conf/node2.conf:/opt/mysql/conf/node.conf
+      - ../supervisor/supervisord.conf:/etc/supervisord.conf
+      - ../supervisor/mysql.ini:/etc/supervisord.d/mysql.ini
+    networks:
+      common:
+        ipv4_address: ${PXC_NODE_2_IP}
+    depends_on:
+      - node1
+    profiles:
+      - pxc
+  node3:
+    image: ${PXC_IMAGE}
+    entrypoint: /usr/local/bin/supervisord
+    command: "-c /etc/supervisord.conf"
+    volumes:
+      - node3-data:/opt/mysql/data
+      - ../source/cert:/opt/mysql/cert
+      - ../source/conf/node3.conf:/opt/mysql/conf/node.conf
+      - ../supervisor/supervisord.conf:/etc/supervisord.conf
+      - ../supervisor/mysql.ini:/etc/supervisord.d/mysql.ini
+    networks:
+      common:
+        ipv4_address: ${PXC_NODE_3_IP}
+    depends_on:
+      - node1
+    profiles:
+      - pxc
+volumes:
+  node1-data:
+    driver: local
+    name: pxc-node1-data
+  node2-data:
+    driver: local
+    name: pxc-node2-data
+  node3-data:
+    driver: local
+    name: pxc-node3-data
+networks:
+  common:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${PXC_NODE_IP_RANGES}
