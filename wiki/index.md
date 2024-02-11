@@ -50,4 +50,4 @@ git clone https://github.com/sathiyaraj-sridhar/percona-xtradb-cluster.git /opt/
 ## Guides
 
 **Development environment (DEV):**
-1. [Running three-node Percona XtraDB Cluster in a Docker Container](wiki/dev-environment.md)
+1. [Running three-node Percona XtraDB Cluster in a Docker Container](dev-environment.md)
