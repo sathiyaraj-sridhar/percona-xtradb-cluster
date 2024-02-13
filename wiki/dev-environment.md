@@ -2,23 +2,23 @@
 
 ## Prerequisites
 
-- Ensure you installed Docker on your machine. If not, please follow their official documentation.[^1]
+- Ensure you installed Docker on your machine. If not, please follow Docker's official documentation.[^1]
 - Ensure you cloned our repository.
 
 ## Overview
 
 In this setup, we are going to:
-1. Write Dockerfile for building custom Docker image PXC.
-2. Build the Docker image.
-3. Configure PXC
-4. Run PXC on three container.
+1. Write a Dockerfile for building a custom container image for Percona XtraDB Cluster (PXC).
+2. Build the base and PXC container images.
+3. Configure PXC.
+4. Run PXC on three containers.
 
 > [!IMPORTANT] 
-> We strongly advise relying on the official documentation and support services [^2]. In this context, we offer a brief overview of the cluster setup with fundamental configurations.
+> I strongly recommend relying on the Percona XtraDB Cluster's official documentation and support services [^2]. In this context, I offer a brief overview of the cluster setup with fundamental configurations.
 
 ## Write a Dockerfile
 
-We have written two Dockerfiles, one for the base image and another for the PXC image, which already exist in the `docker` directory.
+I have written two Dockerfiles, one for the base container image and another for the PXC container image, which already exist in the `docker` directory.
 
 ```bash
 ├── docker
@@ -26,13 +26,19 @@ We have written two Dockerfiles, one for the base image and another for the PXC 
 │ └── dockerfile.pxc.8.0.35
 ```
 
-For best practices, 
-- we install all the necessary softwares, included testing and debugging tools in the base image. This approach applicable only for development (DEV) environment. 
-- We download and install PXC binary tarballs in the PXC image.
+For best practices,
+- Install all the necessary software, including testing and debugging tools, in the base container image. This approach is applicable only for development (DEV) environments.
+- Then install all the necessary software for Percona XtraDB Cluster in the PXC container image.
 
-## Build the base and PXC Docker image
+## Build the base and PXC container image
 
-Here, we derive the base image from the **Amazon Linux 2023** Docker image. Then, we create the PXC image based on the previously derived base image.
+Here, I derive the base container image from the **Amazon Linux 2023** container image. Then, I create the PXC container image from the previously derived base container image.
+
+```mermaid
+graph TD;
+    A[Amazon Linux 2023 container image] --> B[base container image];
+    B --> C[PXC container image];
+```
 
 **Step 1:** Switch to the `percona-xtradb-cluster` directory.
 
@@ -40,7 +46,7 @@ Here, we derive the base image from the **Amazon Linux 2023** Docker image. Then
 cd /opt/oss/percona-xtradb-cluster
 ```
 
-**Step 2:** Download the required package.
+**Step 2:** Download the required packages.
 
 ```bash
 wget https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/Packages/openldap-2.6.6-1.el9.x86_64.rpm -P docker/context/common
@@ -49,7 +55,7 @@ wget https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/Packages/openlda
 wget https://dl.fedoraproject.org/pub/epel/9/Everything/x86_64/Packages/q/qpress-20220819-1.el9.x86_64.rpm -P docker/context/common
 ```
 
-**Step 3:** Download PXC binary tarballs from their official website.
+**Step 3:** Download the RPM packages from their official website.
 
 ```bash
 wget https://downloads.percona.com/downloads/Percona-XtraDB-Cluster-80/Percona-XtraDB-Cluster-8.0.35/binary/redhat/9/x86_64/percona-xtradb-cluster-icu-data-files-8.0.35-27.1.el9.x86_64.rpm -P docker/context/binary
@@ -64,21 +70,21 @@ wget https://downloads.percona.com/downloads/Percona-XtraDB-Cluster-80/Percona-X
 wget https://downloads.percona.com/downloads/Percona-XtraDB-Cluster-80/Percona-XtraDB-Cluster-8.0.35/binary/redhat/9/x86_64/percona-xtradb-cluster-server-8.0.35-27.1.el9.x86_64.rpm -P docker/context/binary
 ```
 
-**Step 4:** Build the base image.
+**Step 4:** Build the base container image.
 
 ```bash
 docker image build -t pxc-base:dev -f docker/dockerfile.base.dev docker/context
 ```
 
-**Step 5:** Build the PXC image.  Suppose if you built separate base image for production and named `pxc-base:prd`, you can use `--build-arg="ENV=prd"` flag to change the `ENV` arguments value in the `dockerfile.pxc.8.0.35`.
+**Step 5:** Build the PXC container image.  Suppose if you built separate base container image for production and named `pxc-base:prd`, you can use `--build-arg="ENV=prd"` flag to change the `ENV` arguments value in the `dockerfile.pxc.8.0.35`.
 
 ```bash
 docker image build -t pxc:v8.0.35 -f docker/dockerfile.pxc.8.0.35 docker/context
 ```
 
-## Configure PXC
+## Configure Percona XtraDB Cluster
 
-When running the cluster setup, it is crucial to maintain quorum for cluster stability. So, we are going to provision three nodes, each being a Docker container. We have already stored the configuration for each node in the `source/conf` directory.  You can get the configuration template from their official documentation [^3].
+When running the cluster setup, it is crucial to maintain quorum for cluster stability. So, I am going to provision three nodes, each being a Docker container. I have already stored the configuration for each node in the `source/conf` directory.  You can get the configuration template from their official documentation [^3].
 
 The `initialize.txt` file contains a MySQL ALTER statement that modifies the password for the `root` user to **root**.
 
@@ -92,7 +98,7 @@ The `initialize.txt` file contains a MySQL ALTER statement that modifies the pas
 │     ├── node3.conf
 ```
 
-We want encrypted replication traffic, so we need an SSL certificate. For the development (DEV) environment, I am creating an SSL certificate using the `openssl` tool based on their documentation [^4].  It is recommended to use the same SSL certificate for all nodes in the cluster. 
+I want encrypted replication traffic, so I need an SSL certificate. For the development (DEV) environment, I am creating an SSL certificate using the `openssl` tool based on their documentation [^4].  It is recommended to use the same SSL certificate for all the nodes in the cluster.
 
 Let's generate an SSL certificates.
 
@@ -103,6 +109,7 @@ openssl req -new -x509 -nodes -days 3650 -key source/cert/ca-key.pem -out source
 ```
 
 - Generate MySQL server private key and certificate.
+
 ```bash
 openssl req -newkey rsa:2048 -days 3600 -nodes -keyout source/cert/server-key.pem -out source/cert/server-req.pem -subj "/CN=pxc-cluster-server-node"
 openssl rsa -in source/cert/server-key.pem -out source/cert/server-key.pem
@@ -117,11 +124,11 @@ openssl rsa -in source/cert/client-key.pem -out source/cert/client-key.pem
 openssl x509 -req -in source/cert/client-req.pem -days 3600 -CA source/cert/ca.pem -CAkey source/cert/ca-key.pem -set_serial 01 -out source/cert/client-cert.pem
 ```
 
-## Run PXC
+## Run Percona XtraDB Cluster
 
-It is good practice to store configurable variables in the `.env` file and use this file when bringing up the container using Docker Compose.
+It is considered good practice to store configuration settings in environment variables and inject these variable values from the shell into **Docker Compose** configuration at runtime.
 
-**Step 1:** Add an environment variable file.
+**Step 1:** Store configurations as environment variables in a file.
 
 - Open a new file. 
 
@@ -150,19 +157,19 @@ docker compose -f docker/compose.yml --env-file docker/default.env --profile boo
 docker compose -f docker/compose.yml --env-file docker/default.env --profile bootstrap -p pxc down
 ```
 
-**Step 3:** Up the Percona XtraDB Cluster.
+**Step 3:** Create and start the containers for the Percona XtraDB Cluster.
 
 ```bash
 docker compose -f docker/compose.yml --env-file docker/default.env --profile pxc -p pxc up -d
 ```
 
-**Step 4:** Down the Percona XtraDB Cluster.
+**Step 4:** Stop and destroy the containers for the Percona XtraDB Cluster.
 
 ```bash
 docker compose -f docker/compose.yml --env-file docker/default.env --profile pxc -p pxc down
 ```
 
-## Other useful commands
+## Additional helpful commands
 
 ```bash
 export NODE=node1
